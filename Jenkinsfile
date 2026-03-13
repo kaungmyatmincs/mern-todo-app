@@ -9,7 +9,11 @@ pipeline {
     stages {
         stage('Build') {
             agent {
-                docker { image 'node:18-alpine' }
+                docker { 
+                    image 'node:18-alpine' 
+                    // This keeps the files visible between containers
+                    args '-v /var/run/docker.sock:/var/run/docker.sock'
+                }
             }
             steps {
                 echo 'Installing Backend Dependencies...'
@@ -22,13 +26,13 @@ pipeline {
         stage('Containerise') {
             steps {
                 echo 'Building Docker Image...'
-                sh "docker build -t ${DOCKER_USER}/${IMAGE_NAME}:latest ."
+                // We add "." to tell docker to look in the current workspace root
+                sh "docker build -t ${DOCKER_USER}/${IMAGE_NAME}:latest -f Dockerfile ."
             }
         }
 
         stage('Push') {
             steps {
-                // Ensure you have created 'docker-hub-creds' in Jenkins Credentials!
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', 
                                                 passwordVariable: 'DOCKER_PASS', 
                                                 usernameVariable: 'DOCKER_USER_VAR')]) {

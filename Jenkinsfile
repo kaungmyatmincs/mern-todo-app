@@ -2,8 +2,8 @@ pipeline {
     agent any
     
     tools {
-        // Ensure this name matches exactly what you set in Manage Jenkins -> Tools
-        nodejs 'node18' 
+        // Changed from 'node18' to 'node' based on the Jenkins error suggestion
+        nodejs 'node' 
     }
 
     stages {
@@ -29,9 +29,8 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 script {
-                    // This block handles the Docker Hub login using your saved credentials
                     docker.withRegistry('', 'docker-hub-creds') {
-                        // The "." context tells Docker to look for the Dockerfile in the ROOT
+                        // "." uses the root context where your Dockerfile lives
                         def appImage = docker.build("kaungmyatmin21/finead-todo-app:latest", ".")
                         appImage.push()
                     }
@@ -42,10 +41,10 @@ pipeline {
     
     post {
         success {
-            echo 'Build and Push successful! You are ready to deploy.'
+            echo 'Build and Push successful!'
         }
         failure {
-            echo 'Build failed. Check the console output for errors.'
+            echo 'Build failed. Check tool naming in Global Tool Configuration if this persists.'
         }
     }
 }

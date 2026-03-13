@@ -1,40 +1,34 @@
 pipeline {
-    agent any // Run everything on the main Jenkins node to keep workspace consistent
-
-    environment {
-        DOCKER_USER = 'kaungmyatmin21'
-        IMAGE_NAME = 'finead-todo-app'
+    agent any
+    
+    tools {
+        nodejs 'node18' // This matches the name you gave in Global Tool Config
     }
 
     stages {
-        // Run 5: Consolidating workspace to ensure Dockerfile visibility
-        stage('Build') {
+        stage('Install & Build') {
             steps {
-                echo 'Installing Backend Dependencies...'
-                // Running npm inside a docker container manually to avoid workspace switching
-                sh 'docker run --rm -v ${WORKSPACE}:/app -w /app/TODO/todo_backend node:18-alpine npm install'
+                dir('TODO/todo_frontend') {
+                    sh 'npm install'
+                    sh 'npm run build'
+                }
+                // Move frontend build to backend per README instructions
+                sh 'mkdir -p TODO/todo_backend/static'
+                sh 'cp -r TODO/todo_frontend/build TODO/todo_backend/static/'
                 
-                echo 'Installing Frontend Dependencies...'
-                sh 'docker run --rm -v ${WORKSPACE}:/app -w /app/TODO/todo_frontend node:18-alpine npm install'
+                dir('TODO/todo_backend') {
+                    sh 'npm install'
+                }
             }
         }
 
-        stage('Containerise') {
+        stage('Docker Build & Push') {
             steps {
-                echo 'Building Docker Image from Root...'
-                // Using ${WORKSPACE} ensures we are in the exact directory where git cloned the files
-                sh "docker build -t ${DOCKER_USER}/${IMAGE_NAME}:latest -f ${WORKSPACE}/Dockerfile ${WORKSPACE}"
-            }
-        }
-
-        stage('Push') {
-            steps {
-                echo 'Pushing to Docker Hub...'
-                withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', 
-                                                passwordVariable: 'DOCKER_PASS', 
-                                                usernameVariable: 'DOCKER_USER_VAR')]) {
-                    sh "echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER_VAR} --password-stdin"
-                    sh "docker push ${DOCKER_USER}/${IMAGE_NAME}:latest"
+                script {
+                    docker.withRegistry('', 'docker-hub-creds') {
+                        def appImage = docker.build("kaungmyatmin21/finead-todo-app:latest", "./TODO/todo_backend")
+                        appImage.push()
+                    }
                 }
             }
         }

@@ -2,36 +2,49 @@ pipeline {
     agent any
     
     tools {
-        // Changed from 'node18' to 'node' based on the Jenkins error suggestion
         nodejs 'node' 
     }
 
     stages {
-        stage('Install & Build') {
+        // Stage 1: Install & Build Frontend
+        stage('Build Frontend') {
             steps {
-                // 1. Build the Frontend
                 dir('TODO/todo_frontend') {
                     sh 'npm install'
                     sh 'npm run build'
                 }
-                
-                // 2. Prepare the Backend: Create static folder and move the build
+            }
+        }
+
+        // Stage 2: Prepare & Install Backend
+        stage('Build Backend') {
+            steps {
+                // Move frontend build to backend static folder
                 sh 'mkdir -p TODO/todo_backend/static'
                 sh 'cp -r TODO/todo_frontend/build/* TODO/todo_backend/static/'
                 
-                // 3. Install Backend dependencies
                 dir('TODO/todo_backend') {
                     sh 'npm install'
                 }
             }
         }
 
-        stage('Docker Build & Push') {
+        // Stage 3: Containerise using Dockerfile
+        stage('Containerise') {
             steps {
                 script {
+                    // Builds using the lightweight alpine config in your Dockerfile
+                    appImage = docker.build("kaungmyatmin21/finead-todo-app:latest", ".")
+                }
+            }
+        }
+
+        // Stage 4: Push to Docker Hub using Stored Credentials
+        stage('Push') {
+            steps {
+                script {
+                    // Uses Jenkins Credentials Provider to avoid hardcoding
                     docker.withRegistry('', 'docker-hub-creds') {
-                        // "." uses the root context where your Dockerfile lives
-                        def appImage = docker.build("kaungmyatmin21/finead-todo-app:latest", ".")
                         appImage.push()
                     }
                 }
@@ -41,10 +54,7 @@ pipeline {
     
     post {
         success {
-            echo 'Build and Push successful!'
-        }
-        failure {
-            echo 'Build failed. Check tool naming in Global Tool Configuration if this persists.'
+            echo 'Pipeline completed successfully!'
         }
     }
 }

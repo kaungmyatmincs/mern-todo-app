@@ -10,13 +10,15 @@ const Home = () => {
     const [taskid, setTaskid] = useState('');
 
     useEffect(() => {
-        axios.get('http://localhost:5000/get')
+        // FIXED: Relative path
+        axios.get('/get')
             .then(result => setTodos(result.data))
             .catch(err => console.log(err));
     }, []);
 
     const edit = (id) => {
-        axios.put(`http://localhost:5000/edit/${id}`)
+        // FIXED: Relative path
+        axios.put(`/edit/${id}`)
             .then(result => {
                 console.log(result.data);
                 const updatedTodos = todos.map(todo => {
@@ -31,7 +33,8 @@ const Home = () => {
     };
 
     const Update = (id, updatedTask) => {
-        axios.put(`http://localhost:5000/update/${id}`, { task: updatedTask })
+        // FIXED: Relative path
+        axios.put(`/update/${id}`, { task: updatedTask })
             .then(result => {
                 console.log(result.data);
                 const updatedTodos = todos.map(todo => {
@@ -43,13 +46,14 @@ const Home = () => {
                 setTodos(updatedTodos);
                 setTaskid('');
                 setUpdatetask('');
-                Window.location.reload();
+                window.location.reload();
             })
             .catch(err => console.log(err));
     };
 
     const Hdelete = (id) => {
-        axios.delete(`http://localhost:5000/delete/${id}`)
+        // FIXED: Relative path
+        axios.delete(`/delete/${id}`)
             .then(result => {
                 console.log(result.data);
                 const updatedTodos = todos.filter(todo => todo._id !== id);
